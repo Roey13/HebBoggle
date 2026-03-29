@@ -6,9 +6,9 @@ server.py — שרת מרוץ מילים
 """
 
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-import urllib.request, urllib.parse, re, json, sys
+import urllib.request, urllib.parse, re, json, sys, os
 
-PORT = 8080
+PORT = int(os.environ.get('PORT', 8080))
 MILOG_URL = "https://milog.co.il/{}"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",

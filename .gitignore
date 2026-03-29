@@ -1,0 +1,7 @@
+.claude/
+*.txt
+!requirements.txt
+milog_debug*.py
+filter_words.py
+mkv_editor.py
+__pycache__/
