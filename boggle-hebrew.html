@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מרוץ מילים</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      margin-bottom: 24px;
+      letter-spacing: 2px;
+      color: #e0c97f;
+      text-shadow: 0 0 20px rgba(224, 201, 127, 0.4);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    select {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 2px solid #444;
+      background: #16213e;
+      color: #eee;
+      font-size: 1rem;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+      direction: rtl;
+    }
+
+    select:focus, select:hover {
+      border-color: #e0c97f;
+    }
+    select:disabled, select:disabled:hover {
+      opacity: 0.35;
+      cursor: not-allowed;
+      border-color: #2a3a5a;
+    }
+
+    .btn {
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.1s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-new {
+      background: linear-gradient(135deg, #e0c97f, #c8a84b);
+      color: #1a1a2e;
+      box-shadow: 0 4px 14px rgba(224, 201, 127, 0.35);
+    }
+
+    .btn-new:hover {
+      box-shadow: 0 6px 20px rgba(224, 201, 127, 0.55);
+    }
+
+    .btn-cancel {
+      background: linear-gradient(135deg, #e05555, #b83030);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(220, 60, 60, 0.35);
+    }
+    .btn-cancel:hover {
+      box-shadow: 0 6px 20px rgba(220, 60, 60, 0.55);
+    }
+
+    .btn-fullscreen {
+      background: #16213e;
+      color: #aaa;
+      border: 2px solid #444;
+      padding: 9px 14px;
+      font-size: 1.1rem;
+    }
+
+    .btn-fullscreen:hover {
+      border-color: #e0c97f;
+      color: #e0c97f;
+    }
+
+    .timer-display {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #e0c97f;
+      min-width: 80px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 1px;
+    }
+
+    .timer-display.warning {
+      color: #ff6b6b;
+      animation: pulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1vmin;
+      padding: 1.5vmin;
+      background: #16213e;
+      border-radius: 18px;
+      border: 2px solid #2a2a4a;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: background 0.5s, border-color 0.5s;
+    }
+
+    .grid.game-over {
+      background: #2e1a1a;
+      border-color: #ff6b6b;
+      animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .cell {
+      width: 13.5vmin;
+      height: 13.5vmin;
+      border-radius: 1.5vmin;
+      background: #0f3460;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7.5vmin;
+      font-weight: bold;
+      color: #eee;
+      border: 0.3vmin solid #1a4a7a;
+      transition: background 0.4s, border-color 0.4s, color 0.4s, transform 0.2s;
+      cursor: default;
+      position: relative;
+    }
+
+    .cell.empty {
+      background: #111827;
+      border-color: #1e2a3a;
+      color: transparent;
+    }
+
+    .cell.empty .star {
+      color: #2a4a6a;
+      font-size: 2.5vmin;
+      animation: twinkle 2.4s ease-in-out infinite;
+      display: block;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.15; transform: scale(0.85); }
+      50%       { opacity: 0.7;  transform: scale(1.15); }
+    }
+
+    .cell.game-over {
+      background: #4a1a1a;
+      border-color: #882222;
+      color: #ff9999;
+    }
+
+    .cell.appear {
+      animation: cellAppear 0.3s ease forwards;
+    }
+
+    @keyframes cellAppear {
+      from {
+        transform: scale(0.5) rotateY(90deg);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) rotateY(0deg);
+        opacity: 1;
+      }
+    }
+
+    /* Overlay / Popup */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .popup {
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 2px solid #ff6b6b;
+      border-radius: 20px;
+      padding: 40px 50px;
+      text-align: center;
+      box-shadow: 0 0 50px rgba(255, 107, 107, 0.4);
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .popup h2 {
+      font-size: 2.2rem;
+      color: #ff6b6b;
+      margin-bottom: 12px;
+    }
+
+    .popup p {
+      color: #aaa;
+      margin-bottom: 28px;
+      font-size: 1.1rem;
+    }
+
+    .popup .btn-new {
+      font-size: 1.1rem;
+      padding: 12px 30px;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      max-width: calc(5 * 13.5vmin + 4 * 1vmin + 2 * 1.5vmin);
+      height: 22px;
+      background: #05090f;
+      border-radius: 4px;
+      margin-bottom: 14px;
+      padding: 3px;
+      border: 1px solid #1a2540;
+      direction: ltr;
+      box-shadow: 0 0 0 1px #0a1428, inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+      transition: width 1s linear;
+      background:
+        repeating-linear-gradient(
+          to right,
+          transparent 0px,
+          transparent 22px,
+          #05090f 22px,
+          #05090f 26px
+        ),
+        linear-gradient(to right, #00b4db, #0083b0);
+      box-shadow: 0 0 10px rgba(0, 180, 219, 0.45);
+    }
+
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.18) 0%,
+        transparent 55%
+      );
+      pointer-events: none;
+    }
+
+    .progress-bar.warning {
+      background:
+        repeating-linear-gradient(
+          to right,
+          transparent 0px,
+          transparent 22px,
+          #05090f 22px,
+          #05090f 26px
+        ),
+        linear-gradient(to right, #ff416c, #ff9900);
+      box-shadow: 0 0 12px rgba(255, 65, 108, 0.55);
+      animation: warnFlicker 0.5s ease-in-out infinite;
+    }
+
+    @keyframes warnFlicker {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.75; }
+    }
+
+    .game-area {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+    }
+
+    .words-panel {
+      width: 240px;
+      max-height: calc(5 * 13.5vmin + 4 * 1vmin + 2 * 1.5vmin);
+      background: #16213e;
+      border-radius: 18px;
+      border: 2px solid #2a2a4a;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .words-panel.hidden { display: none; }
+    .words-panel::-webkit-scrollbar { width: 5px; }
+    .words-panel::-webkit-scrollbar-track { background: #0d1424; border-radius: 3px; }
+    .words-panel::-webkit-scrollbar-thumb { background: #2a4a7a; border-radius: 3px; }
+
+    .words-panel-title {
+      color: #e0c97f;
+      font-size: 0.95rem;
+      font-weight: bold;
+      text-align: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2a2a4a;
+      flex-shrink: 0;
+    }
+
+    .words-status {
+      color: #666;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    .words-count {
+      color: #aaa;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .validation-progress {
+      font-size: 0.8rem;
+      color: #4a7aaa;
+      text-align: center;
+      padding: 4px 0;
+    }
+
+    .validation-bar-wrap {
+      width: 100%;
+      height: 4px;
+      background: #0d1424;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .validation-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4776e6, #8e54e9);
+      border-radius: 2px;
+      transition: width 0.2s linear;
+    }
+
+    .words-group-header {
+      color: #4a6a9a;
+      font-size: 0.75rem;
+      margin-top: 6px;
+      padding-bottom: 2px;
+      border-bottom: 1px solid #1e2a3a;
+    }
+
+    .words-group-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .word-chip {
+      background: #0f3460;
+      border: 1px solid #1a4a7a;
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 0.9rem;
+      color: #ccc;
+      cursor: default;
+      transition: background 0.15s;
+    }
+
+    .word-chip:hover {
+      background: #1a4a8a;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .word-chip.active {
+      background: #1a5a2a;
+      border-color: #3a9a4a;
+      color: #88ffaa;
+    }
+
+    .word-chip-invalid {
+      background: #2a1010;
+      border-color: #6a2020;
+      color: #e06060;
+      text-decoration: line-through;
+      opacity: 0.75;
+    }
+
+    .word-chip-invalid:hover {
+      background: #3a1515 !important;
+      color: #ff8888 !important;
+      opacity: 1;
+    }
+
+    .cell.highlighted {
+      background: #0d3d1a !important;
+      border-color: #2aaa3a !important;
+      color: #88ffaa !important;
+      animation: pathFlow 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pathFlow {
+      0%, 55%, 100% { filter: brightness(1);   }
+      22%            { filter: brightness(1.65); }
+    }
+
+    .cell.word-first {
+      background: #2a5a00 !important;
+      border: 4px solid #f0d060 !important;
+      box-shadow: 0 0 14px rgba(240,208,96,0.7);
+      color: #88ffaa !important;
+    }
+
+    .cell.word-last {
+      background: #5a1010 !important;
+      border: 4px solid #ff5555 !important;
+      box-shadow: 0 0 14px rgba(255,80,80,0.7);
+      color: #88ffaa !important;
+    }
+
+    .cell-arrow {
+      position: absolute;
+      font-size: 2.8vmin;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+      pointer-events: none;
+      text-shadow: 0 0 4px #000, 0 0 8px #000;
+      -webkit-text-stroke: 1px #fff;
+    }
+    .cell-arrow.arrow-pos-0 { bottom: 5px; left:  6px; }
+    .cell-arrow.arrow-pos-1 { bottom: 5px; right: 6px; }
+    .cell-arrow.arrow-pos-2 { top:    5px; left:  6px; }
+
+    .cell-number {
+      position: absolute;
+      top: 5px;
+      right: 6px;
+      font-size: 2.8vmin;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+      pointer-events: none;
+      text-shadow: 0 0 4px #000, 0 0 8px #000;
+    }
+
+    /* ── Milog panel ── */
+    .milog-panel {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 400px;
+      height: 100vh;
+      background: #111827;
+      box-shadow: 4px 0 28px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      z-index: 200;
+      transform: translateX(-100%);
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .milog-panel.open { transform: translateX(0); }
+
+    .milog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #16213e;
+      border-bottom: 2px solid #2a2a4a;
+      flex-shrink: 0;
+    }
+
+    .milog-header-word {
+      color: #e0c97f;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .milog-header-word .selectable-word {
+      user-select: text;
+      cursor: text;
+    }
+
+    .milog-header-sub {
+      color: #557;
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    .milog-close {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px 9px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .milog-close:hover { color: #fff; background: #c0392b; }
+
+    .milog-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 24px;
+      direction: rtl;
+    }
+
+    .milog-body a:not(.milog-link) { pointer-events: none; cursor: default; }
+    .milog-body::-webkit-scrollbar { width: 5px; }
+    .milog-body::-webkit-scrollbar-track { background: #0d1424; }
+    .milog-body::-webkit-scrollbar-thumb { background: #2a4a7a; border-radius: 3px; }
+
+    .milog-loading-msg {
+      color: #556;
+      text-align: center;
+      padding: 40px 0;
+      font-size: 1rem;
+    }
+
+    .milog-entry {
+      margin-bottom: 20px;
+      border-bottom: 1px solid #1e2a3a;
+      padding-bottom: 16px;
+    }
+
+    .milog-entry:last-child { border-bottom: none; }
+
+    .milog-entry-title {
+      color: #e0c97f;
+      font-size: 1.05rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .milog-def {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .milog-def-index {
+      color: #4a6a9a;
+      font-size: 0.85rem;
+      min-width: 18px;
+      padding-top: 2px;
+    }
+
+    .milog-def-text {
+      color: #ccc;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .milog-examples {
+      margin-top: 4px;
+      padding-right: 8px;
+      border-right: 2px solid #2a4a6a;
+    }
+
+    .milog-example {
+      color: #7a9aaa;
+      font-size: 0.85rem;
+      font-style: italic;
+      margin-top: 3px;
+    }
+
+    .milog-no-results {
+      color: #556;
+      text-align: center;
+      padding: 30px 0;
+      font-size: 0.95rem;
+    }
+
+    .milog-link {
+      display: block;
+      text-align: center;
+      color: #4a7aaa;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      text-decoration: none;
+    }
+
+    .milog-link:hover { color: #e0c97f; }
+
+    /* ── Drag selection ── */
+    .cell.drag-selected {
+      background: #3a2800 !important;
+      border-color: #e0a020 !important;
+      border-width: 3px !important;
+      color: #ffe080 !important;
+      box-shadow: 0 0 10px rgba(224,160,32,0.5);
+    }
+    .cell.drag-error {
+      background: #5a1a1a !important;
+      border-color: #df4a4a !important;
+      transition: background 0.1s, border-color 0.1s;
+    }
+
+    /* ── Drag confirm popup ── */
+    .drag-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 190;
+    }
+    .drag-backdrop.show { display: block; }
+
+    .drag-confirm {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #0d1e35;
+      border: 1px solid #2a4a7a;
+      border-radius: 14px;
+      padding: 28px 36px;
+      text-align: center;
+      z-index: 200;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+      direction: rtl;
+      min-width: 240px;
+    }
+    .drag-confirm.show { display: block; }
+    .drag-confirm-label { color: #8ab4d4; font-size: 0.85rem; margin-bottom: 8px; }
+    .drag-confirm-word  { color: #e0c97f; font-size: 2.2rem; font-weight: bold; margin-bottom: 22px; letter-spacing: 2px; }
+    .drag-confirm-btns  { display: flex; gap: 12px; justify-content: center; }
+    .drag-btn { padding: 9px 22px; border-radius: 8px; border: none; cursor: pointer; font-size: 1rem; font-family: inherit; transition: background 0.15s; }
+    .drag-btn-yes { background: #1a5a2a; color: #88ffaa; border: 1px solid #3a9a4a; }
+    .drag-btn-yes:hover { background: #2a7a3a; }
+    .drag-btn-no  { background: #1a2a3a; color: #8ab4d4; border: 1px solid #2a4a6a; }
+    .drag-btn-no:hover  { background: #2a3a4a; }
+    .drag-error-msg { color: #e06060; font-size: 0.95rem; margin-top: 4px; }
+
+    /* עיצוב HTML גולמי ממילוג */
+    .milog-raw { font-size: 0.9rem; line-height: 1.6; }
+    .milog-raw::after { content: ''; display: block; height: 20px; }
+    .milog-raw .sr_e {
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #1e2a3a;
+    }
+    .milog-raw .sr_e:last-child { border-bottom: none; }
+    .milog-raw .sr_e_t {
+      color: #e0c97f;
+      font-size: 1.05rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .milog-raw .sr_e_t_pos {
+      color: #8ab4d4;
+      font-size: 0.85rem;
+      font-weight: normal;
+      margin-right: 6px;
+    }
+    .milog-raw .sr_e_para {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 5px;
+      color: #c8d8e8;
+    }
+    .milog-raw .sr_e_index { color: #8ab4d4; min-width: 18px; flex-shrink: 0; }
+    .milog-raw .sr_e_txt   { flex: 1; }
+    .milog-raw .sr_example {
+      display: block;
+      color: #7a9ab4;
+      font-style: italic;
+      margin-top: 3px;
+      font-size: 0.85rem;
+    }
+    /* הסתר אלמנטים מיותרים ממילוג */
+    .milog-raw img,
+    .milog-raw .sr_e_audio,
+    .milog-raw .sr_e_btn  { display: none; }
+
+    /* סימון הערך התואם */
+    .milog-raw .sr_e_match {
+      border: 1px solid #e0c97f;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      background: rgba(224, 201, 127, 0.06);
+    }
+    .milog-raw .sr_e_match .sr_e_t { color: #ffe97f; }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.8rem; }
+      .cell { width: 56px; height: 56px; font-size: 1.5rem; }
+      .grid { gap: 7px; padding: 14px; }
+      .milog-panel { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>מרוץ מילים</h1>
+
+  <div class="controls">
+    <button class="btn btn-new" id="newGameBtn">משחק חדש</button>
+
+    <select id="timeSelect">
+      <option value="30">30 שניות</option>
+      <option value="60">60 שניות</option>
+      <option value="90">90 שניות</option>
+      <option value="120">2 דקות</option>
+      <option value="180" selected>3 דקות</option>
+      <option value="300">5 דקות</option>
+    </select>
+
+    <div class="timer-display" id="timerDisplay">--:--</div>
+
+    <button class="btn btn-fullscreen" id="fullscreenBtn" title="מסך מלא">⛶</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="game-area">
+    <div class="grid" id="grid">
+      <!-- 25 cells generated by JS -->
+    </div>
+    <div class="words-panel hidden" id="wordsPanel">
+      <div class="words-panel-title">מילים בלוח</div>
+      <div class="words-status" id="wordsStatus">טוען מילון...</div>
+    </div>
+  </div>
+
+  <!-- Milog side panel -->
+  <div class="milog-panel" id="milogPanel">
+    <div class="milog-header">
+      <div>
+        <div class="milog-header-word" id="milogWord"></div>
+        <div class="milog-header-sub">מילוג — מילון עברי עברי</div>
+      </div>
+      <button class="milog-close" onclick="closeMilog()">✕</button>
+    </div>
+    <div class="milog-body" id="milogBody">
+      <div class="milog-loading-msg">בחר מילה מהרשימה לצפייה בהגדרה</div>
+    </div>
+  </div>
+
+  <!-- Drag confirm -->
+  <div class="drag-backdrop" id="dragBackdrop" onclick="cancelDragSearch()"></div>
+  <div class="drag-confirm" id="dragConfirm">
+    <div class="drag-confirm-label" id="dragConfirmLabel">המילה שנבחרה:</div>
+    <div class="drag-confirm-word" id="dragConfirmWord"></div>
+    <div class="drag-confirm-btns" id="dragConfirmBtns">
+      <button class="drag-btn drag-btn-yes" onclick="confirmDragSearch()">חפש במילוג</button>
+      <button class="drag-btn drag-btn-no"  onclick="cancelDragSearch()">ביטול</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="popup">
+      <h2>הזמן נגמר!</h2>
+      <p>כל הכבוד על המשחק</p>
+      <button class="btn btn-new" id="popupClose">סגור</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Hebrew letter pool (weighted by frequency) ──────────────────────────
+    // 25 קוביות × 6 פאות = 150 פאות
+    // התפלגות: ש:12 י:12 ו:11 ל:10 מ:10 ה:10 ר:9 נ:9 ת:9 א:8 ד:7 ב:6 ע:5 כ:5 פ:4 ח:4 ס:4 ק:3 צ:3 ג:3 ז:3 ט:3
+    const HEBREW_DICE = [
+      // קוביות עשירות בניקוד (1-5)
+      ['י','י','ו','ה','א','ל'],
+      ['י','י','ו','ה','א','מ'],
+      ['י','י','ו','ה','א','ש'],
+      ['י','י','ו','ה','נ','ת'],
+      ['י','י','ו','ה','ר','ב'],
+      // שי"ן + עיצורים נפוצים (6-10)
+      ['ש','ש','ל','מ','נ','ת'],
+      ['ש','ש','ל','ר','ד','א'],
+      ['ש','ש','מ','נ','ת','ה'],
+      ['ש','ש','ל','ר','מ','ו'],
+      ['ש','ש','ו','ה','כ','ע'],
+      // תדירות בינונית-גבוהה (11-17)
+      ['ל','ל','מ','ר','ד','נ'],
+      ['ל','ל','ת','ר','ב','א'],
+      ['מ','מ','נ','ת','ד','ה'],
+      ['מ','מ','ר','ד','ב','ו'],
+      ['נ','נ','ת','ת','ד','א'],
+      ['ע','ע','כ','כ','פ','ח'],
+      ['ב','ב','ה','ר','ו','ד'],
+      // תדירות בינונית-נמוכה (18-22)
+      ['כ','כ','פ','ח','ס','ע'],
+      ['ס','ס','ס','פ','ח','ח'],
+      ['ק','ג','ז','ט','צ','ש'],
+      ['ק','ג','ז','ט','צ','ו'],
+      ['ק','צ','ג','ז','ט','י'],
+      // השלמה (23-25)
+      ['ל','ל','ר','נ','ת','א'],
+      ['י','ו','מ','ה','ר','נ'],
+      ['ת','א','ד','ב','ע','פ'],
+    ];
+
+    // ── Word list ────────────────────────────────────────────────────────────
+    let wordSet   = null;
+    let namesSet  = null;
+    let dfsWorker = null;
+
+    // קוד ה-Web Worker (רץ ב-thread נפרד)
+    const DFS_WORKER_SRC = `
+      let wordSet = null;
+      const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+
+      function findAllWords(letters) {
+        const pathMap = new Map();
+        const visited = new Array(25).fill(false);
+
+        function addWord(word, path, reversed) {
+          if (!wordSet.has(word)) return;
+          const entry = { path: path.map(p => [...p]), reversed };
+          if (!pathMap.has(word)) pathMap.set(word, []);
+          const paths = pathMap.get(word);
+          const key = path[0].join(',');
+          if (!paths.some(e => e.path[0].join(',') === key))
+            paths.push(entry);
+        }
+
+        function dfs(r, c, path) {
+          const idx = r * 5 + c;
+          if (visited[idx]) return;
+          visited[idx] = true;
+          path.push([r, c]);
+          if (path.length >= 3) {
+            const word    = path.map(([pr,pc]) => letters[pr*5+pc]).join('');
+            const wordRev = word.split('').reverse().join('');
+            addWord(word, path, false);
+            if (wordRev !== word) addWord(wordRev, path, true);
+          }
+          if (path.length < 25)
+            for (const [dr,dc] of DIRS) {
+              const nr=r+dr, nc=c+dc;
+              if (nr>=0&&nr<5&&nc>=0&&nc<5) dfs(nr,nc,path);
+            }
+          path.pop();
+          visited[idx] = false;
+        }
+
+        for (let r=0;r<5;r++)
+          for (let c=0;c<5;c++)
+            dfs(r,c,[]);
+
+        const words = Array.from(pathMap.keys())
+          .sort((a,b) => b.length-a.length || a.localeCompare(b,'he'));
+        const pathEntries = words.map(w => [w, pathMap.get(w)]);
+        return { words, pathEntries };
+      }
+
+      self.onmessage = function(e) {
+        if (e.data.type === 'init') {
+          wordSet = new Set(e.data.words);
+        } else if (e.data.type === 'search') {
+          self.postMessage(findAllWords(e.data.letters));
+        }
+      };
+    `;
+
+    function setStatus(msg) {
+      const el = document.getElementById('wordsStatus');
+      if (el) el.textContent = msg;
+    }
+
+    // סינון ה' הידיעה: מילה שמתחילה ב-ה' ואם נוריד אותה, הבסיס קיים במאגר
+    function hasHaYedia(word) {
+      if (!word.startsWith('ה') || word.length < 4) return false;
+      return wordSet.has(word.slice(1));
+    }
+
+    // סינון סמיכות: מילה שנגמרת ב-ת', אם נחליף ב-ה' הבסיס קיים במאגר
+    function isSmichut(word) {
+      if (!word.endsWith('ת') || word.length < 4) return false;
+      const base = word.slice(0, -1) + 'ה';
+      return wordSet.has(base);
+    }
+
+    // סינון שמות פרטיים: קיים ברשימת שמות אבל לא קיים כמילה כללית בלי ה-ה' בהתחלה
+    function isProperNoun(word) {
+      if (!namesSet || !namesSet.has(word)) return false;
+      // אם יש לה משמעות נוספת (ניתן למצוא בצורות אחרות) — לא שם פרטי
+      return true;
+    }
+
+    function isValidWord(word) {
+      if (!wordSet.has(word)) return false;
+      if (hasHaYedia(word))   return false;
+      if (isSmichut(word))    return false;
+      if (isProperNoun(word)) return false;
+      return true;
+    }
+
+    async function loadWordList() {
+      try {
+        setStatus('טוען מילון...');
+        const res = await fetch('words_he.json');
+        if (!res.ok) throw new Error(`שגיאת טעינה ${res.status}`);
+        setStatus('מעבד מילון...');
+        const arr = await res.json();
+        // הוסף גרסאות עם אות לא-סופית לכל מילה שמסתיימת באות סופית
+        const FINAL_TO_NF = { 'ך':'כ', 'ם':'מ', 'ן':'נ', 'ף':'פ', 'ץ':'צ' };
+        const NF_TO_FINAL  = { 'כ':'ך', 'מ':'ם', 'נ':'ן', 'פ':'ף', 'צ':'ץ' };
+        window._NF_TO_FINAL = NF_TO_FINAL; // נשתמש בזה ב-openMilog
+        const extra = [];
+        for (const w of arr) {
+          const nf = FINAL_TO_NF[w[w.length - 1]];
+          if (nf) extra.push(w.slice(0, -1) + nf);
+        }
+        const allWords = arr.concat(extra);
+        wordSet = new Set(allWords);
+        // אתחל Worker עם המילון המורחב
+        const blob = new Blob([DFS_WORKER_SRC], { type: 'application/javascript' });
+        dfsWorker = new Worker(URL.createObjectURL(blob));
+        dfsWorker.postMessage({ type: 'init', words: allWords });
+        setStatus('לחץ על "משחק חדש" להתחיל');
+      } catch(e) {
+        setStatus(`שגיאה בטעינת המילון: ${e.message}`);
+      }
+    }
+
+    // ── DFS path finder ──────────────────────────────────────────────────────
+    const DIRS = [[-1,0],[1,0],[0,-1],[0,1]]; // ↑↓←→ only, no diagonal
+
+    // word → [{ path: [[r,c],...], reversed: boolean }, ...]  (מספר מסלולים אפשריים)
+    let currentPathMap = new Map();
+
+    function findAllWords(letters) {
+      currentPathMap = new Map();
+      const visited = new Array(25).fill(false);
+
+      function addWord(word, path, reversed) {
+        if (!wordSet.has(word)) return;
+        const entry = { path: path.map(p => [...p]), reversed };
+        if (!currentPathMap.has(word)) currentPathMap.set(word, []);
+        // הוסף רק אם המסלול הזה שונה (לפי תא ראשון שונה)
+        const paths = currentPathMap.get(word);
+        const key = path[0].join(',');
+        if (!paths.some(e => e.path[0].join(',') === key))
+          paths.push(entry);
+      }
+
+      function dfs(r, c, path) {
+        const idx = r * 5 + c;
+        if (visited[idx]) return;
+        visited[idx] = true;
+        path.push([r, c]);
+
+        if (path.length >= 3) {
+          const word    = path.map(([pr, pc]) => letters[pr * 5 + pc]).join('');
+          const wordRev = word.split('').reverse().join('');
+          addWord(word, path, false);
+          if (wordRev !== word) addWord(wordRev, path, true);
+        }
+
+        if (path.length < 25) {
+          for (const [dr, dc] of DIRS) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) dfs(nr, nc, path);
+          }
+        }
+
+        path.pop();
+        visited[idx] = false;
+      }
+
+      for (let r = 0; r < 5; r++)
+        for (let c = 0; c < 5; c++)
+          dfs(r, c, []);
+
+      return Array.from(currentPathMap.keys())
+        .sort((a, b) => b.length - a.length || a.localeCompare(b, 'he'));
+    }
+
+    // ── Milog panel ─────────────────────────────────────────────────────────
+    async function openMilog(word) {
+      if (!interactionsEnabled) return;
+      const panel  = document.getElementById('milogPanel');
+      const body   = document.getElementById('milogBody');
+      const wordEl = document.getElementById('milogWord');
+
+      const pts = word.length - 2;
+      wordEl.innerHTML = `<span class="selectable-word">${word}</span> — ${pts} נקודות`;
+      body.innerHTML = '<div class="milog-loading-msg">טוען הגדרה...</div>';
+      fitMilogPanel();
+      panel.classList.add('open');
+
+      // אם המילה מסתיימת באות לא-סופית, נסה גם גרסה עם האות הסופית
+      const NF2F = window._NF_TO_FINAL || {'כ':'ך','מ':'ם','נ':'ן','פ':'ף','צ':'ץ'};
+      const lastCh = word[word.length - 1];
+      const wordFinal = NF2F[lastCh] ? word.slice(0, -1) + NF2F[lastCh] : null;
+      const lookupWord = wordFinal || word; // נשלח למילוג את הגרסה הסופית
+
+      try {
+        const res  = await fetch(`/api/milog?word=${encodeURIComponent(lookupWord)}`);
+        const data = await res.json();
+
+        const link = `<a class="milog-link" href="https://milog.co.il/${encodeURIComponent(lookupWord)}" target="_blank">פתח במילוג ↗</a>`;
+
+        if (!data.html || data.html.trim() === '') {
+          body.innerHTML = `<div class="milog-no-results">לא נמצאה הגדרה למילה "${word}"</div>${link}`;
+          return;
+        }
+
+        // הצג רק ערכים עם התאמה מדויקת (sr_e_match)
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${data.html}</div>`, 'text/html');
+        const matches = doc.querySelectorAll('.sr_e_match');
+
+        if (matches.length === 0) {
+          body.innerHTML = `<div class="milog-no-results">לא נמצאה הגדרה למילה "${word}"</div>${link}`;
+          return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'milog-raw';
+        matches.forEach(el => container.appendChild(el.cloneNode(true)));
+        const spacer = document.createElement('div');
+        spacer.style.height = '20px';
+        container.appendChild(spacer);
+        body.innerHTML = '';
+        body.appendChild(container);
+        body.insertAdjacentHTML('beforeend', link);
+
+      } catch(e) {
+        body.innerHTML = `
+          <div class="milog-no-results">שגיאה בטעינה — ודא שהשרת רץ</div>
+          <a class="milog-link" href="https://milog.co.il/${encodeURIComponent(word)}" target="_blank">פתח במילוג ↗</a>`;
+      }
+    }
+
+    function fitMilogPanel() {
+      const wordsPanel = document.getElementById('wordsPanel');
+      const milog      = document.getElementById('milogPanel');
+      const gap        = 18; // אותו gap כמו בין words panel לגריד
+      const rect       = wordsPanel.getBoundingClientRect();
+      const newWidth   = Math.max(200, rect.left - gap);
+      milog.style.width = newWidth + 'px';
+    }
+
+    function closeMilog() {
+      document.getElementById('milogPanel').classList.remove('open');
+    }
+
+    window.addEventListener('resize', fitMilogPanel);
+
+
+    // ── Highlight word on grid ───────────────────────────────────────────────
+    // In RTL grid: col+1 = visually LEFT (←), col-1 = visually RIGHT (→)
+    const ARROW_MAP = { '-1,0': '↑', '1,0': '↓', '0,1': '←', '0,-1': '→' };
+
+    function clearHighlight() {
+      document.querySelectorAll('.cell-arrow, .cell-number').forEach(el => el.remove());
+      document.querySelectorAll('.cell').forEach(c => {
+        c.classList.remove('highlighted', 'word-first', 'word-last');
+        c.style.animationDelay = '';
+      });
+      document.querySelectorAll('.word-chip.active').forEach(c => c.classList.remove('active'));
+    }
+
+    function highlightPath(readPath, cells) {
+      const flowDuration = 1.6, peakPct = 0.22;
+      readPath.forEach(([r, c], idx) => {
+        const cell = cells[r * 5 + c];
+        cell.classList.add('highlighted');
+        if (idx === 0)                    cell.classList.add('word-first');
+        if (idx === readPath.length - 1) cell.classList.add('word-last');
+
+        const numEl = document.createElement('span');
+        numEl.className = 'cell-number';
+        numEl.textContent = idx + 1;
+        cell.appendChild(numEl);
+
+        cell.style.animationDelay = `${flowDuration * (idx / readPath.length - peakPct)}s`;
+
+        if (idx < readPath.length - 1) {
+          const [nr, nc] = readPath[idx + 1];
+          const arrow = ARROW_MAP[`${nr - r},${nc - c}`];
+          if (arrow) {
+            const existingArrows = [...cell.querySelectorAll('.cell-arrow')];
+            const alreadyExists  = existingArrows.some(a => a.textContent === arrow);
+            if (!alreadyExists) {
+              const el = document.createElement('span');
+              el.className = `cell-arrow arrow-pos-${existingArrows.length}`;
+              el.textContent = arrow;
+              cell.appendChild(el);
+            }
+          }
+        }
+      });
+    }
+
+    function highlightWord(word, chipEl) {
+      const isActive = chipEl && chipEl.classList.contains('active');
+      clearHighlight();
+      if (isActive) return;
+      if (chipEl) chipEl.classList.add('active');
+      if (!currentPathMap.has(word)) return;
+
+      const cells = [...document.querySelectorAll('.cell')];
+      for (const { path, reversed } of currentPathMap.get(word)) {
+        const readPath = reversed ? [...path].reverse() : path;
+        highlightPath(readPath, cells);
+      }
+    }
+
+    // (validation ידני בלבד — בלחיצה על מילה)
+
+    // ── Display words ────────────────────────────────────────────────────────
+    function displayWords(words) {
+      const panel = document.getElementById('wordsPanel');
+      const title = panel.querySelector('.words-panel-title');
+
+      panel.innerHTML = '';
+      panel.appendChild(title);
+
+      if (words.length === 0) {
+        panel.insertAdjacentHTML('beforeend', '<div class="words-status">לא נמצאו מילים</div>');
+        return;
+      }
+
+      panel.insertAdjacentHTML('beforeend', `<div class="words-count">${words.length} מילים נמצאו</div>`);
+
+      const groups = {};
+      for (const w of words) {
+        if (!groups[w.length]) groups[w.length] = [];
+        groups[w.length].push(w);
+      }
+
+      for (const len of Object.keys(groups).map(Number).sort((a,b) => b - a)) {
+        const pts = len - 2;
+        panel.insertAdjacentHTML('beforeend', `
+          <div class="words-group-header">${len} אותיות (${groups[len].length}) — ${pts} נקודות</div>
+          <div class="words-group-list">
+            ${groups[len].map(w =>
+              `<span class="word-chip" onclick="highlightWord('${w}',this); openMilog('${w}')">${w}</span>`
+            ).join('')}
+          </div>`
+        );
+      }
+    }
+
+    const grid        = document.getElementById('grid');
+    const timerEl     = document.getElementById('timerDisplay');
+    const newBtn      = document.getElementById('newGameBtn');
+    const popupBtn    = document.getElementById('popupClose');
+    const overlay     = document.getElementById('overlay');
+    const fsBtn       = document.getElementById('fullscreenBtn');
+    const timeSelect  = document.getElementById('timeSelect');
+    const progressBar = document.getElementById('progressBar');
+
+    let timerInterval        = null;
+    let secondsLeft          = 0;
+    let totalSeconds         = 0;
+    let gameActive           = false;
+    let postGame             = false;  // אחרי סיום, לפני "סיים משחק"
+    let interactionsEnabled  = false;  // סימון מילים + מילוג פעילים רק אחרי סגירת פופאפ
+    let pendingWords         = null;   // מילים שנמצאו בזמן המשחק — ממתינות לתצוגה
+
+    // ── Build empty grid on load ─────────────────────────────────────────────
+    function buildEmptyGrid() {
+      grid.innerHTML = '';
+      grid.classList.remove('game-over');
+      for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell empty';
+        const star = document.createElement('span');
+        star.className = 'star';
+        star.textContent = '✦';
+        star.style.animationDelay = `${(i * 0.37) % 2.4}s`;
+        cell.appendChild(star);
+        grid.appendChild(cell);
+      }
+    }
+
+    // ── Reset to idle (ללא רענון דף — שמירה על מסך מלא) ────────────────────
+    function resetToIdle() {
+      clearInterval(timerInterval);
+      overlay.classList.remove('show');
+      closeMilog();
+      cancelDragSearch();
+      if (dfsWorker) dfsWorker.onmessage = null;
+      gameActive = false;
+      postGame = false;
+      interactionsEnabled = false;
+      pendingWords = null;
+      currentPathMap = new Map();
+      grid.classList.remove('game-over');
+      clearHighlight();
+      buildEmptyGrid();
+      newBtn.textContent = 'משחק חדש';
+      newBtn.classList.remove('btn-cancel');
+      timeSelect.disabled = false;
+      timerEl.classList.remove('warning');
+      timerEl.textContent = '--:--';
+      progressBar.classList.remove('warning');
+      progressBar.style.transition = 'none';
+      progressBar.style.width = '100%';
+      setTimeout(() => progressBar.style.transition = '', 50);
+      const panel = document.getElementById('wordsPanel');
+      panel.classList.add('hidden');
+    }
+
+    // ── Start new game ───────────────────────────────────────────────────────
+    function startNewGame() {
+      clearInterval(timerInterval);
+      overlay.classList.remove('show');
+      // סגור חלוניות פתוחות
+      closeMilog();
+      cancelDragSearch();
+      // בטל חיפוש מילים קודם
+      if (dfsWorker) dfsWorker.onmessage = null;
+      grid.classList.remove('game-over');
+      clearHighlight();
+      currentPathMap = new Map();
+
+      // Fill grid — ערבוב קוביות + הטלה (כמו בוגל אנגלית)
+      grid.innerHTML = '';
+      // ערבב קוביות (Fisher-Yates)
+      const dice = [...HEBREW_DICE];
+      for (let i = dice.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [dice[i], dice[j]] = [dice[j], dice[i]];
+      }
+      const placed = []; // [{letter, row, col}]
+
+      for (let i = 0; i < 25; i++) {
+        const row = Math.floor(i / 5), col = i % 5;
+        // ערבב פאות הקוביה ובחר פאה שאינה סמוכה לאות זהה
+        const faces = [...dice[i]].sort(() => Math.random() - 0.5);
+        let letter = faces[0];
+        for (const face of faces) {
+          const adjacent = placed.some(p =>
+            p.letter === face &&
+            Math.abs(p.row - row) <= 1 && Math.abs(p.col - col) <= 1
+          );
+          if (!adjacent) { letter = face; break; }
+        }
+        placed.push({ letter, row, col });
+
+        const cell = document.createElement('div');
+        cell.className = 'cell appear';
+        cell.style.animationDelay = `${i * 30}ms`;
+        cell.textContent = letter;
+        cell.dataset.letter = letter;
+        cell.dataset.row = Math.floor(i / 5);
+        cell.dataset.col = i % 5;
+        grid.appendChild(cell);
+      }
+
+      // חיפוש מילים ברקע — לא מציגים עד סיום המשחק
+      pendingWords = null;
+      postGame = false;
+      interactionsEnabled = false;
+      document.getElementById('wordsPanel').classList.add('hidden');
+      if (dfsWorker) {
+        const letters = [...grid.querySelectorAll('.cell')].map(c => c.dataset.letter);
+        const panel = document.getElementById('wordsPanel');
+        const title = panel.querySelector('.words-panel-title');
+        panel.innerHTML = '';
+        panel.appendChild(title);
+        panel.insertAdjacentHTML('beforeend', '<div class="words-status">המשחק בעיצומו — המילים יוצגו בסיום</div>');
+        dfsWorker.onmessage = (e) => {
+          currentPathMap = new Map(e.data.pathEntries);
+          pendingWords = e.data.words; // שמור — הצג רק אחרי סיום
+        };
+        dfsWorker.postMessage({ type: 'search', letters });
+      }
+
+      // Start timer
+      secondsLeft  = parseInt(timeSelect.value, 10);
+      totalSeconds = secondsLeft;
+      gameActive   = true;
+      newBtn.textContent = 'סיים משחק';
+      newBtn.classList.add('btn-cancel');
+      timeSelect.disabled = true;
+      timerEl.classList.remove('warning');
+      progressBar.classList.remove('warning');
+      progressBar.style.width = '100%';
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        secondsLeft--;
+        updateTimerDisplay();
+        progressBar.style.width = `${(secondsLeft / totalSeconds) * 100}%`;
+        if (secondsLeft <= 10) {
+          timerEl.classList.add('warning');
+          progressBar.classList.add('warning');
+        }
+        if (secondsLeft <= 0) {
+          clearInterval(timerInterval);
+          gameActive = false;
+          postGame = true;
+          // כפתור נשאר "סיים משחק" אדום — עד שמשתמש לוחץ עליו
+          onGameOver();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+      const s = (secondsLeft % 60).toString().padStart(2, '0');
+      timerEl.textContent = `${m}:${s}`;
+    }
+
+    // ── Grid drag to select ──────────────────────────────────────────────────
+    let isDragging = false;
+    let dragPath   = [];
+    let dragWord   = '';
+
+    function clearDragHighlight() {
+      document.querySelectorAll('.cell.drag-selected, .cell.drag-error')
+        .forEach(c => c.classList.remove('drag-selected', 'drag-error'));
+    }
+
+    function showDragConfirm(word) {
+      document.getElementById('dragConfirmLabel').textContent = 'המילה שנבחרה:';
+      document.getElementById('dragConfirmWord').textContent  = word;
+      document.getElementById('dragConfirmBtns').style.display = '';
+      document.getElementById('dragBackdrop').classList.add('show');
+      document.getElementById('dragConfirm').classList.add('show');
+    }
+
+    function showDragError(msg = 'תנועה אלכסונית אסורה — נסה שוב') {
+      isDragging = false;
+      dragPath.forEach(p => {
+        p.cell.classList.remove('drag-selected');
+        p.cell.classList.add('drag-error');
+      });
+      setTimeout(clearDragHighlight, 600);
+      dragPath = [];
+      const label = document.getElementById('dragConfirmLabel');
+      const word  = document.getElementById('dragConfirmWord');
+      const btns  = document.getElementById('dragConfirmBtns');
+      label.textContent = msg;
+      label.className   = 'drag-error-msg';
+      word.textContent  = '';
+      btns.style.display = 'none';
+      document.getElementById('dragBackdrop').classList.add('show');
+      document.getElementById('dragConfirm').classList.add('show');
+      setTimeout(() => {
+        document.getElementById('dragBackdrop').classList.remove('show');
+        document.getElementById('dragConfirm').classList.remove('show');
+        label.className = 'drag-confirm-label';
+      }, 1500);
+    }
+
+    function confirmDragSearch() {
+      document.getElementById('dragBackdrop').classList.remove('show');
+      document.getElementById('dragConfirm').classList.remove('show');
+      clearDragHighlight();
+      const w = dragWord;
+      dragPath = []; dragWord = '';
+      // הדגש את הצ'יפ ברשימה אם המילה קיימת שם
+      const chip = [...document.querySelectorAll('.word-chip')]
+        .find(el => el.textContent === w);
+      if (chip) highlightWord(w, chip);
+      openMilog(w);
+    }
+
+    function cancelDragSearch() {
+      document.getElementById('dragBackdrop').classList.remove('show');
+      document.getElementById('dragConfirm').classList.remove('show');
+      clearDragHighlight();
+      dragPath = []; dragWord = '';
+    }
+
+    const gridEl = document.getElementById('grid');
+
+    gridEl.addEventListener('mousedown', e => {
+      if (!interactionsEnabled) return;
+      const cell = e.target.closest('.cell');
+      if (!cell || cell.classList.contains('empty')) return;
+      e.preventDefault();
+      clearHighlight();      // מנקה הדגשת מילה קודמת
+      isDragging = true;
+      dragPath   = [{ row: +cell.dataset.row, col: +cell.dataset.col, cell }];
+      clearDragHighlight();
+      cell.classList.add('drag-selected');
+    });
+
+    gridEl.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const cell = e.target.closest('.cell');
+      if (!cell || cell.classList.contains('empty')) return;
+      const r = +cell.dataset.row, c = +cell.dataset.col;
+      const last = dragPath[dragPath.length - 1];
+      if (r === last.row && c === last.col) return;          // אותו תא
+      if (dragPath.some(p => p.row === r && p.col === c)) return; // כבר בנתיב
+      const dr = Math.abs(r - last.row), dc = Math.abs(c - last.col);
+      if (dr === 1 && dc === 1) { showDragError(); return; } // אלכסון
+      if (dr + dc === 1) {                                   // סמוך
+        dragPath.push({ row: r, col: c, cell });
+        cell.classList.add('drag-selected');
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (dragPath.length < 3) {
+        if (dragPath.length >= 2) showDragError('מילה חייבת להכיל לפחות 3 אותיות');
+        else { clearDragHighlight(); dragPath = []; }
+        return;
+      }
+      dragWord = dragPath.map(p => p.cell.dataset.letter).join('');
+      showDragConfirm(dragWord);
+    });
+
+    // ── Game over ────────────────────────────────────────────────────────────
+    function onGameOver() {
+      // Color change
+      grid.classList.add('game-over');
+      document.querySelectorAll('.cell').forEach(c => c.classList.add('game-over'));
+
+      // Sound via Web Audio API
+      playEndSound();
+
+      // Show popup after brief delay
+      setTimeout(() => overlay.classList.add('show'), 600);
+    }
+
+    // ── End-game sound ───────────────────────────────────────────────────────
+    function playEndSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        const notes = [523, 392, 330, 262]; // C5, G4, E4, C4 descending
+        notes.forEach((freq, i) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.18);
+          gain.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.18);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.35);
+
+          osc.start(ctx.currentTime + i * 0.18);
+          osc.stop(ctx.currentTime + i * 0.18 + 0.35);
+        });
+      } catch (e) {
+        // Audio not supported — silently skip
+      }
+    }
+
+    // ── Fullscreen ───────────────────────────────────────────────────────────
+    fsBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        fsBtn.textContent = '✕';
+        fsBtn.title = 'צא ממסך מלא';
+      } else {
+        document.exitFullscreen();
+        fsBtn.textContent = '⛶';
+        fsBtn.title = 'מסך מלא';
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        fsBtn.textContent = '⛶';
+        fsBtn.title = 'מסך מלא';
+      }
+    });
+
+    // ── Event listeners ──────────────────────────────────────────────────────
+    newBtn.addEventListener('click', () => {
+      if (gameActive || postGame) { resetToIdle(); } else { startNewGame(); }
+    });
+    popupBtn.addEventListener('click', () => {
+      overlay.classList.remove('show');
+      interactionsEnabled = true;
+      grid.classList.remove('game-over');
+      document.querySelectorAll('.cell').forEach(c => c.classList.remove('game-over'));
+      document.getElementById('wordsPanel').classList.remove('hidden');
+      // הצג את המילים שנמצאו
+      if (pendingWords !== null) {
+        displayWords(pendingWords);
+      } else {
+        const panel = document.getElementById('wordsPanel');
+        const title = panel.querySelector('.words-panel-title');
+        panel.innerHTML = '';
+        panel.appendChild(title);
+        panel.insertAdjacentHTML('beforeend', '<div class="words-status">לא נמצאו מילים</div>');
+      }
+      // הלוח נשאר כמו שהוא — לא מאפסים
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    buildEmptyGrid();
+    loadWordList();
+  </script>
+</body>
+</html>
