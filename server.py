@@ -102,6 +102,13 @@ class Handler(SimpleHTTPRequestHandler):
         pass  # שתוק בלוגים
 
     def do_GET(self):
+        # הפנה / לקובץ המשחק
+        if self.path == '/':
+            self.send_response(302)
+            self.send_header('Location', '/boggle-hebrew.html')
+            self.end_headers()
+            return
+
         # API endpoint: /api/validate?word=...  (בדיקת קיום בלבד)
         if self.path.startswith('/api/validate'):
             parsed = urllib.parse.urlparse(self.path)
